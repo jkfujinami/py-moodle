@@ -142,7 +142,7 @@ if details.can_attempt:
 - `get_resource_download_url(resource_id) -> Optional[str]`: リソースファイルのダウンロードURLを取得します。
 - `get_external_url(url_id) -> Optional[str]`: 外部リンクのURLを取得します。
 
-**クイズ操作**
+**クイズ(試験)操作**
 - `start_quiz_attempt(cmid, sesskey) -> Optional[str]`: クイズの受験を開始し、受験ページのURLを返します。
 - `get_quiz_attempt_data(attempt_url) -> Optional[QuizAttemptData]`: 受験ページから問題データを解析して取得します。
 - `submit_quiz_answers(attempt_data, answers, finish_attempt=False) -> Optional[str]`: 回答を送信します。`finish_attempt=True` で「テストを終了する」ボタンを押した挙動になります。
