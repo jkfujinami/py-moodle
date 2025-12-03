@@ -1,18 +1,19 @@
 # PyMoodle
-
-**PyMoodle** は、[Moodle](https://moodle.org/) LMS の、非公式の Python クライアントライブラリです。Moodle の Web インターフェースをスクレイピングすることで、コース情報の取得、課題の確認、ファイルのダウンロード、小テスト結果の閲覧などをプログラムから行うことができます。
+[Moodle](https://moodle.org/) LMS の、非公式の Python クライアントライブラリ
+<br>
+Moodle の Web インターフェースをスクレイピングすることで、コース情報の取得、課題の確認、ファイルのダウンロード、小テスト結果の閲覧などをプログラムから行うことができます。
 
 ## 主な機能
 
-*   **認証の自動化**: ログインフローを処理し、セッションを作成します。
-*   **セッションの永続化**: セッション Cookie をローカルの JSON ファイルに保存し、再ログインの手間を省きます。
-*   **コース管理**: 登録しているコースの一覧や、コースカテゴリを閲覧できます。
+*   **認証の自動化**: セッションの作成
+*   **セッションの永続化**: セッション Cookie をローカルの JSON ファイルに保存する。
+*   **コース管理**: 登録しているコースの一覧や、コースカテゴリの取得
 *   **コンテンツの抽出**:
-    *   **課題 (Assignments)**: 提出期限、提出状況、添付ファイルへのリンクを取得します。
-    *   **小テスト (Quizzes)**: 受験履歴、評点、フィードバックを確認できます。
-    *   **リソース**: ファイルやフォルダの直接ダウンロード URL を解決します。
-    *   **フォーラム & ページ**: コンテンツや概要を抽出します。
-*   **ファイルダウンロード**: コース資料や提出ファイルをダウンロードします。
+    *   **課題 (Assignments)**: 提出期限、提出状況、添付ファイルへのリンクの取得
+    *   **小テスト (Quizzes)**: 受験履歴、評点、フィードバックの取得
+    *   **リソース**: ファイルやフォルダの直接ダウンロード URL の取得
+    *   **フォーラム & ページ**: コンテンツや概要の抽出
+*   **ファイルダウンロード**: コース資料や提出ファイルのダウンロード
 
 ## 必要要件
 
@@ -68,12 +69,12 @@ for section in sections:
         print(f"  - {module.name} ({module.type})")
 ```
 
-### クイズの自動化
+### 試験の自動化
 
-PyMoodle はクイズの詳細取得、受験開始、回答の送信をサポートしています。
+PyMoodle は試験の詳細取得、受験開始、回答の送信をサポートしています。
 
 ```python
-# クイズ詳細の取得
+# 試験の詳細取得
 quiz_id = 99999
 details = client.get_quiz_details(quiz_id)
 
@@ -111,54 +112,54 @@ if details.can_attempt:
 
 ## サンプル
 
-`examples/` ディレクトリに完全なスクリプトがあります：
+`examples/` ディレクトリにあるサンプルスクリプトを参考にしてください。
 
-- `list_courses.py`: 受講コースの一覧を表示します。
-- `get_course_contents.py`: 特定のコースのコンテンツを表示します。
-- `download_resource.py`: ファイルリソースをダウンロードします。
-- `quiz_attempt.py`: クイズを取得して回答するデモです。
+- `list_courses.py`: 受講コースの一覧を表示
+- `get_course_contents.py`: 特定のコースのコンテンツを表示
+- `download_resource.py`: ファイルリソースをダウンロード
+- `quiz_attempt.py`: 試験を取得して回答するデモ
 
 ## API リファレンス
 
 ### `MoodleClient`
 
 **初期化・認証**
-- `__init__(base_url, session_file="session.json")`: クライアントを初期化します。
-- `login(username, password) -> bool`: ユーザー名とパスワードでログインします。
-- `load_session() -> bool`: 保存されたセッションファイルを読み込みます。
-- `is_logged_in() -> bool`: 現在のセッションが有効（ログイン済み）か確認します。
+- `__init__(base_url, session_file="session.json")`: クライアントを初期化
+- `login(username, password) -> bool`: ユーザー名とパスワードでログイン
+- `load_session() -> bool`: 保存されたセッションファイルを読み込み
+- `is_logged_in() -> bool`: 現在のセッションが有効（ログイン済み）か確認
 
 **コース・カテゴリ**
-- `get_my_courses() -> List[Course]`: 登録されているコースの一覧を取得します。
-- `get_course_contents(course_id) -> List[Section]`: 指定したコースのセクションとモジュール構成を取得します。
-- `get_course_categories(category_id=None) -> List[Category]`: コースカテゴリの一覧を取得します。
+- `get_my_courses() -> List[Course]`: 登録されているコースの一覧を取得
+- `get_course_contents(course_id) -> List[Section]`: 指定したコースのセクションとモジュール構成を取得
+- `get_course_categories(category_id=None) -> List[Category]`: コースカテゴリの一覧を取得
 
 **モジュール詳細**
-- `get_quiz_details(quiz_id) -> Optional[QuizDetails]`: クイズ（小テスト）の詳細を取得します。
-- `get_assignment_details(assign_id) -> Optional[Dict]`: 課題の詳細を取得します。
-- `get_folder_details(folder_id) -> Optional[Dict]`: フォルダ内のファイル一覧を取得します。
-- `get_page_details(page_id) -> Optional[Dict]`: ページモジュールの内容を取得します。
-- `get_forum_details(forum_id) -> Optional[Dict]`: フォーラムの概要を取得します。
-- `get_resource_download_url(resource_id) -> Optional[str]`: リソースファイルのダウンロードURLを取得します。
-- `get_external_url(url_id) -> Optional[str]`: 外部リンクのURLを取得します。
+- `get_quiz_details(quiz_id) -> Optional[QuizDetails]`: クイズ（小テスト）の詳細を取得
+- `get_assignment_details(assign_id) -> Optional[Dict]`: 課題の詳細を取得
+- `get_folder_details(folder_id) -> Optional[Dict]`: フォルダ内のファイル一覧を取得
+- `get_page_details(page_id) -> Optional[Dict]`: ページモジュールの内容を取得
+- `get_forum_details(forum_id) -> Optional[Dict]`: フォーラムの概要を取得
+- `get_resource_download_url(resource_id) -> Optional[str]`: リソースファイルのダウンロードURLを取得
+- `get_external_url(url_id) -> Optional[str]`: 外部リンクのURLを取得
 
 **クイズ(試験)操作**
-- `start_quiz_attempt(cmid, sesskey) -> Optional[str]`: クイズの受験を開始し、受験ページのURLを返します。
-- `get_quiz_attempt_data(attempt_url) -> Optional[QuizAttemptData]`: 受験ページから問題データを解析して取得します。
-- `submit_quiz_answers(attempt_data, answers, finish_attempt=False) -> Optional[str]`: 回答を送信します。`finish_attempt=True` で「テストを終了する」ボタンを押した挙動になります。
-- `finish_quiz_attempt(attempt_id, sesskey, cmid) -> Optional[str]`: 概要ページから「すべて送信して終了する」を実行します。
+- `start_quiz_attempt(cmid, sesskey) -> Optional[str]`: クイズの受験を開始し、受験ページのURLを返す
+- `get_quiz_attempt_data(attempt_url) -> Optional[QuizAttemptData]`: 受験ページから問題データを解析して取得
+- `submit_quiz_answers(attempt_data, answers, finish_attempt=False) -> Optional[str]`: 回答を送信します。`finish_attempt=True` で「テストを終了する」ボタンを押した挙動になります
+- `finish_quiz_attempt(attempt_id, sesskey, cmid) -> Optional[str]`: 概要ページから「すべて送信して終了する」を実行します
 
 **ユーティリティ**
-- `download_file(url, save_dir) -> Optional[str]`: 指定したURLからファイルをダウンロードして保存します。
+- `download_file(url, save_dir) -> Optional[str]`: 指定したURLからファイルをダウンロードして保存する
 
 ## エラーハンドリング
 
 `pymoodle.exceptions` で定義されている例外：
 
-- `MoodleError`: ベース例外クラス。
-- `MoodleLoginError`: ログイン失敗時に発生します。
-- `MoodleRequestError`: HTTPリクエスト失敗時に発生します。
-- `MoodleParseError`: HTML解析失敗時に発生します。
+- `MoodleError`: ベース例外クラス
+- `MoodleLoginError`: ログイン失敗時に発生
+- `MoodleRequestError`: HTTPリクエスト失敗時に発生
+- `MoodleParseError`: HTML解析失敗時に発生
 
 ```python
 from pymoodle.exceptions import MoodleLoginError
@@ -171,8 +172,8 @@ except MoodleLoginError as e:
 
 ## 免責事項
 
-このライブラリは **非公式** であり、Moodle HQ とは提携していません。Web スクレイピングに依存しているため、以下の点に注意してください：
-1. Moodle のテーマや DOM 構造が大幅に変更された場合、**動作しなくなる可能性**があります。
+このライブラリは **非公式** でありWeb スクレイピングに依存しているため、以下の点に注意してください：
+1. Moodle の構造や DOM 構造が大幅に変更された場合、**動作しなくなる可能性**があります。
 2. **全て自己責任でお願いします。**
 
 ## ライセンス
