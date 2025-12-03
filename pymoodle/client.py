@@ -11,8 +11,8 @@ class MoodleClient:
     High-level client for Moodle.
     Acts as a facade for MoodleSession and MoodleAPI.
     """
-    def __init__(self, session_file="session.json", base_url: Optional[str] = None):
-        self.session = MoodleSession(session_file, base_url)
+    def __init__(self, base_url: Optional[str], session_file="session.json"):
+        self.session = MoodleSession(base_url=base_url, session_file=session_file)
         self.api = MoodleAPI(self.session)
 
     def login(self, username, password) -> bool:

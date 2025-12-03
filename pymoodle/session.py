@@ -14,19 +14,13 @@ class MoodleSession:
     """
     Handles HTTP session, authentication, and cookie management for Moodle.
     """
-    _DEFAULT_BASE_URL = "https://moodle2.maizuru-ct.ac.jp/moodle/"
 
-    def __init__(self, session_file: str = "session.json", base_url: Optional[str] = None):
+    def __init__(self, base_url: Optional[str], session_file: str = "session.json"):
         self.session = requests.Session()
         self.session_file = session_file
-
-        if base_url:
-            if not base_url.endswith('/'):
-                base_url += '/'
-            self.base_url = base_url
-        else:
-            self.base_url = self._DEFAULT_BASE_URL
-
+        if not base_url.endswith('/'):
+            base_url += '/'
+        self.base_url = base_url
         self.login_url = urljoin(self.base_url, "login/index.php")
 
         # Default headers
@@ -120,6 +114,7 @@ class MoodleSession:
             try:
                 with open(self.session_file, 'r') as f:
                     cookies = json.load(f)
+                print(cookies)
                 self.session.cookies.update(cookies)
                 logger.info(f"Session loaded from {self.session_file}")
                 return True

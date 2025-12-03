@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def main():
-    client = MoodleClient(session_file="moodle_session.json")
+    client = MoodleClient(base_url="https://moodle2.maizuru-ct.ac.jp/moodle/", session_file="moodle_session.json")
 
     # セッションの読み込みを試みる
     if client.load_session():
@@ -44,7 +44,7 @@ def main():
 
         # コースコンテンツ取得のデモ（最初のコースを使用）
         if courses:
-            first_course_id = 3240
+            first_course_id = 2911
             print(f"\nFetching contents for course {first_course_id}...")
             sections = client.get_course_contents(first_course_id)
             for section in sections:
@@ -104,7 +104,6 @@ def main():
                             print(f"      -> Content: {details['content'][:100]}...")
                     elif mod['type'] == "quiz" and mod['id']:
                         details = client.get_quiz_details(mod['id'])
-                        print(details)
                         if details:
                             print(f"      -> Intro: {details['intro'][:50]}...")
                             print(f"      -> Can Attempt: {details['can_attempt']}")

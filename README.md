@@ -34,7 +34,7 @@ pip install -e .
 
 ### 1. 初期化とログイン
 
-Moodle のベース URL を指定してクライアントを初期化します。指定しない場合は、デフォルトの設定(舞鶴高専)が使用されます。
+Moodle のベース URL を指定してクライアントを初期化します。
 
 ```python
 from pymoodle import MoodleClient
@@ -43,7 +43,7 @@ import getpass
 # あなたの Moodle URL で初期化
 # 注意: URL の末尾にはスラッシュを付けてください
 BASE_URL = "https://moodle.example.com/"
-client = MoodleClient(session_file="session.json", base_url=BASE_URL)
+client = MoodleClient(base_url=BASE_URL, session_file="session.json")
 
 # 有効なセッションが保存されているか確認
 if client.is_logged_in():

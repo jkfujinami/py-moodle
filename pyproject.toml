@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-  {name = "Your Name", email = "your.email@example.com"}
+  {name = "J.K. Fujinami", email = "jkfujinami@gmail.com"}
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/pymoodle"
-"Bug Tracker" = "https://github.com/yourusername/pymoodle/issues"
+"Homepage" = "https://github.com/jkfujinami/py-moodle"
+"Bug Tracker" = "https://github.com/jkfujinami/py-moodle/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
