@@ -7,7 +7,7 @@ import os
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def get_client():
-    client = MoodleClient(base_url="https://moodle2.maizuru-ct.ac.jp/moodle/", session_file="session.json")
+    client = MoodleClient(base_url="https://moodle2.example.jp/moodle/", session_file="session.json")
 
     if client.load_session() and client.is_logged_in():
         print("Session is valid. Logged in.")
@@ -32,6 +32,7 @@ def main():
     resource_id = 12345
 
     print(f"Resolving download URL for resource {resource_id}...")
+    # This method returns a string, so no change needed for the return value itself
     download_url = client.get_resource_download_url(resource_id)
 
     if download_url:

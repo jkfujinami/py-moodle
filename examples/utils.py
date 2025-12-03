@@ -7,7 +7,7 @@ import os
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def get_client():
-    client = MoodleClient(base_url="https://moodle2.maizuru-ct.ac.jp/moodle/", session_file="moodle_session.json")
+    client = MoodleClient(base_url="https://moodle2.example.jp/moodle/", session_file="moodle_session.json")
 
     if client.load_session() and client.is_logged_in():
         print("Session is valid. Logged in.")

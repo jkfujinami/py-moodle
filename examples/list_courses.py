@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def get_client():
-    client = MoodleClient(base_url="https://moodle2.maizuru-ct.ac.jp/moodle/", session_file="session.json")
+    client = MoodleClient(base_url="https://moodle2.example.jp/moodle/", session_file="session.json")
 
     if client.load_session() and client.is_logged_in():
         print("Session is valid. Logged in.")
@@ -31,13 +31,13 @@ def main():
     courses = client.get_my_courses()
     print(f"Found {len(courses)} courses:")
     for course in courses:
-        print(f"- [{course['id']}] {course['name']}")
+        print(f"- [{course.id}] {course.name}")
 
     print("\nFetching root course categories...")
     categories = client.get_course_categories()
     print(f"Found {len(categories)} root categories:")
     for cat in categories:
-        print(f"- [{cat['id']}] {cat['name']} (Courses: {cat['course_count']})")
+        print(f"- [{cat.id}] {cat.name} (Courses: {cat.course_count})")
 
 if __name__ == "__main__":
     main()
