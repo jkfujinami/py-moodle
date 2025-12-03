@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 from typing import List, Optional
-from pymoodle.types import Course, Category, Section, Module, FileItem, FolderDetails, AssignmentDetails, ForumDetails, PageDetails, QuizDetails
+from pymoodle.types import Course, Category, Section, Module, FileItem, FolderDetails, AssignmentDetails, ForumDetails, PageDetails, QuizDetails, QuizAttempt, QuizQuestion, QuizAttemptData
 
 def parse_my_courses(html: str) -> List[Course]:
     soup = BeautifulSoup(html, 'html.parser')
@@ -18,21 +18,21 @@ def parse_my_courses(html: str) -> List[Course]:
              if 'id=' in href:
                  try:
                      course_id = int(href.split('id=')[1].split('&')[0])
-                     courses.append({
-                         "id": course_id,
-                         "name": name,
-                         "url": href,
-                         "image_url": None,
-                         "teachers": []
-                     })
+                     courses.append(Course(
+                         id=course_id,
+                         name=name,
+                         url=href,
+                         image_url=None,
+                         teachers=[]
+                     ))
                  except ValueError:
                      pass
          seen_ids = set()
          unique_courses = []
          for c in courses:
-             if c['id'] not in seen_ids:
+             if c.id not in seen_ids:
                  unique_courses.append(c)
-                 seen_ids.add(c['id'])
+                 seen_ids.add(c.id)
          return unique_courses
 
     for item in course_items:
@@ -78,13 +78,13 @@ def parse_my_courses(html: str) -> List[Course]:
         for t_link in teacher_links:
             teachers.append(t_link.get_text(strip=True))
 
-        courses.append({
-            "id": course_id,
-            "name": name,
-            "url": url,
-            "image_url": image_url,
-            "teachers": teachers
-        })
+        courses.append(Course(
+            id=course_id,
+            name=name,
+            url=url,
+            image_url=image_url,
+            teachers=teachers
+        ))
 
     return courses
 
@@ -147,21 +147,21 @@ def parse_course_contents(html: str) -> List[Section]:
                 if "完了: " in title and "未完了" not in title:
                     is_completed = True
 
-            modules.append({
-                "id": mod_id,
-                "type": mod_type,
-                "name": mod_name,
-                "url": mod_url,
-                "description": description,
-                "completed": is_completed
-            })
+            modules.append(Module(
+                id=mod_id,
+                type=mod_type,
+                name=mod_name,
+                url=mod_url,
+                description=description,
+                completed=is_completed
+            ))
 
-        sections.append({
-            "id": section_id,
-            "name": section_name,
-            "summary": section_summary,
-            "modules": modules
-        })
+        sections.append(Section(
+            id=section_id,
+            name=section_name,
+            summary=section_summary,
+            modules=modules
+        ))
 
     return sections
 
@@ -196,13 +196,13 @@ def parse_categories(html: str, is_subcategory: bool = False) -> List[Category]:
             if match:
                 course_count = int(match.group(1))
 
-        categories.append({
-            "id": int(cat_id) if cat_id else None,
-            "name": name,
-            "url": url,
-            "course_count": course_count,
-            "has_children": "with_children" in item.get("class", [])
-        })
+        categories.append(Category(
+            id=int(cat_id) if cat_id else None,
+            name=name,
+            url=url,
+            course_count=course_count,
+            has_children="with_children" in item.get("class", [])
+        ))
 
     return categories
 
@@ -259,11 +259,11 @@ def _parse_file_tree(container) -> List[FileItem]:
             elif '/document' in src: mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
             elif '/archive' in src: mimetype = 'application/zip'
 
-        files.append({
-            "filename": filename,
-            "url": href,
-            "mimetype": mimetype
-        })
+        files.append(FileItem(
+            filename=filename,
+            url=href,
+            mimetype=mimetype
+        ))
     return files
 
 def parse_folder(html: str) -> FolderDetails:
@@ -290,11 +290,11 @@ def parse_folder(html: str) -> FolderDetails:
         if action and id_input:
             download_all_url = f"{action}?id={id_input.get('value')}"
 
-    return {
-        "title": title,
-        "files": files,
-        "download_all_url": download_all_url
-    }
+    return FolderDetails(
+        title=title,
+        files=files,
+        download_all_url=download_all_url
+    )
 
 def parse_assignment(html: str) -> AssignmentDetails:
     soup = BeautifulSoup(html, 'html.parser')
@@ -348,17 +348,17 @@ def parse_assignment(html: str) -> AssignmentDetails:
                 # ファイル提出セル内のツリー
                 submission_files = _parse_file_tree(td)
 
-    return {
-        "title": title,
-        "intro": intro,
-        "attachments": attachments,
-        "submission_status": submission_status,
-        "grading_status": grading_status,
-        "due_date": due_date,
-        "time_remaining": time_remaining,
-        "last_modified": last_modified,
-        "submission_files": submission_files
-    }
+    return AssignmentDetails(
+        title=title,
+        intro=intro,
+        attachments=attachments,
+        submission_status=submission_status,
+        grading_status=grading_status,
+        due_date=due_date,
+        time_remaining=time_remaining,
+        last_modified=last_modified,
+        submission_files=submission_files
+    )
 
 def parse_forum(html: str) -> ForumDetails:
     soup = BeautifulSoup(html, 'html.parser')
@@ -375,11 +375,11 @@ def parse_forum(html: str) -> ForumDetails:
     if soup.select_one('.forumnodiscuss'):
         has_discussions = False
 
-    return {
-        "title": title,
-        "intro": intro,
-        "has_discussions": has_discussions
-    }
+    return ForumDetails(
+        title=title,
+        intro=intro,
+        has_discussions=has_discussions
+    )
 
 def parse_page(html: str) -> PageDetails:
     soup = BeautifulSoup(html, 'html.parser')
@@ -400,11 +400,11 @@ def parse_page(html: str) -> PageDetails:
     if modified_div:
         last_modified = modified_div.get_text(strip=True).replace("最終更新日時:", "").strip()
 
-    return {
-        "title": title,
-        "content": content,
-        "last_modified": last_modified
-    }
+    return PageDetails(
+        title=title,
+        content=content,
+        last_modified=last_modified
+    )
 
 def parse_quiz(html: str) -> QuizDetails:
     soup = BeautifulSoup(html, 'html.parser')
@@ -471,13 +471,13 @@ def parse_quiz(html: str) -> QuizDetails:
             if feedback_idx != -1 and len(cells) > feedback_idx:
                 feedback = cells[feedback_idx].get_text(strip=True)
 
-            attempts.append({
-                "attempt_number": attempt_num,
-                "state": state,
-                "grade": grade,
-                "review_url": review_url,
-                "feedback": feedback
-            })
+            attempts.append(QuizAttempt(
+                attempt_number=attempt_num,
+                state=state,
+                grade=grade,
+                review_url=review_url,
+                feedback=feedback
+            ))
 
     feedback_div = soup.select_one('#feedback')
     overall_feedback = feedback_div.get_text(separator="\n", strip=True) if feedback_div else None
@@ -500,18 +500,18 @@ def parse_quiz(html: str) -> QuizDetails:
         if sesskey_input:
             sesskey = sesskey_input.get('value')
 
-    return {
-        "title": title,
-        "intro": intro,
-        "attempts": attempts,
-        "feedback": overall_feedback,
-        "can_attempt": can_attempt,
-        "cmid": cmid,
-        "sesskey": sesskey,
-        "latest_attempt_data": None
-    }
+    return QuizDetails(
+        title=title,
+        intro=intro,
+        attempts=attempts,
+        feedback=overall_feedback,
+        can_attempt=can_attempt,
+        cmid=cmid,
+        sesskey=sesskey,
+        latest_attempt_data=None
+    )
 
-def parse_quiz_attempt(html: str) -> QuizAttemptData:
+def parse_quiz_attempt(html: str) -> Optional[QuizAttemptData]:
     soup = BeautifulSoup(html, 'html.parser')
 
     form = soup.select_one('#responseform')
@@ -535,6 +535,8 @@ def parse_quiz_attempt(html: str) -> QuizAttemptData:
         # Extract question text (ignoring accesshide)
         content_div = q_div.select_one('.content')
         q_text = ""
+        subquestions = []
+
         if content_div:
             # Remove accesshide elements temporarily to get clean text
             for hidden in content_div.select('.accesshide'):
@@ -542,9 +544,112 @@ def parse_quiz_attempt(html: str) -> QuizAttemptData:
 
             formulation = content_div.select_one('.formulation')
             if formulation:
+                # Handle multianswer (cloze) subquestions by replacing them with placeholders
+                # and extracting their data simultaneously
+
+                # We need to find subquestions in order of appearance in the text
+                # Moodle usually puts them in .subquestion spans or directly as inputs/selects
+
+                # Find all subquestion elements (selects or inputs) within formulation
+                # We iterate through all descendants to find inputs/selects that are part of the question
+                # Note: This is a bit complex because we want to replace them in the text AND parse them.
+
+                # Strategy:
+                # 1. Find all .subquestion elements or input/selects that look like answers.
+                # 2. Parse them into our subquestions list.
+                # 3. Replace the element in the DOM with a placeholder string.
+                # 4. Get text from the modified DOM.
+
+                sub_idx = 1
+
+                # Cloze questions often wrap controls in span.subquestion, but not always.
+                # We look for controls that have names like q123:4_sub5_answer
+
+                # First, handle span.subquestion wrappers if they exist (common in Cloze)
+                for sub_span in formulation.select('.subquestion'):
+                    # Parse data
+                    label_tag = sub_span.select_one('label')
+                    # label might be hidden or empty
+
+                    select = sub_span.select_one('select')
+                    input_tag = sub_span.select_one('input')
+
+                    control_name = ""
+                    options = []
+                    stype = "unknown"
+
+                    if select:
+                        stype = "select"
+                        control_name = select.get('name')
+                        for opt in select.select('option'):
+                            val = opt.get('value')
+                            text = opt.get_text(strip=True)
+                            # Moodle sometimes uses value="0" for "Choose..." but also for valid answers.
+                            # We should only exclude if value is empty OR text looks like a placeholder
+                            if val is not None: # value="" is empty string, value=None is missing attribute
+                                # Check for common placeholder text
+                                if val == '0' and (text.startswith("選択") or text.startswith("Choose") or text == ""):
+                                    continue
+                                if val == "":
+                                    continue
+                                options.append({"value": val, "text": text})
+                    elif input_tag:
+                        stype = "text"
+                        control_name = input_tag.get('name')
+
+                    subquestions.append({
+                        "label": f"Blank {sub_idx}",
+                        "name": control_name,
+                        "options": options,
+                        "type": stype
+                    })
+
+                    # Replace with placeholder
+                    sub_span.replace_with(f" [BLANK_{sub_idx}] ")
+                    sub_idx += 1
+
+                # Sometimes controls are not in .subquestion spans (e.g. simple input fields)
+                # If we still have inputs/selects in formulation that haven't been handled (because they weren't in .subquestion)
+                # we should handle them. But be careful not to double count if we already replaced them.
+                # Since we replaced .subquestion elements, their children are gone from formulation.
+
+                # Now look for remaining inputs/selects that are question answers
+                # Moodle question inputs usually have names starting with q\d+:\d+_
+                import re
+                remaining_controls = formulation.find_all(['input', 'select'])
+                for control in remaining_controls:
+                    name = control.get('name', '')
+                    if not name or 'sequencecheck' in name: continue
+
+                    # Check if it looks like a question answer field
+                    if re.match(r'q\d+:\d+_', name):
+                        stype = "text" if control.name == 'input' else "select"
+                        options = []
+                        if stype == "select":
+                            for opt in control.select('option'):
+                                val = opt.get('value')
+                                text = opt.get_text(strip=True)
+                                # Same logic as above
+                                if val is not None:
+                                    if val == '0' and (text.startswith("選択") or text.startswith("Choose") or text == ""):
+                                        continue
+                                    if val == "":
+                                        continue
+                                    options.append({"value": val, "text": text})
+
+                        subquestions.append({
+                            "label": f"Blank {sub_idx}",
+                            "name": name,
+                            "options": options,
+                            "type": stype
+                        })
+
+                        control.replace_with(f" [BLANK_{sub_idx}] ")
+                        sub_idx += 1
+
                 q_text = formulation.get_text(separator="\n", strip=True)
 
-        # Determine type
+        # Determine type (simplified as we might have modified the DOM, but classes are on q_div)
         classes = q_div.get('class', [])
         q_type = "unknown"
         for c in classes:
@@ -552,59 +657,31 @@ def parse_quiz_attempt(html: str) -> QuizAttemptData:
                 q_type = c
                 break
 
-        subquestions = []
-        # Handle multianswer (cloze) subquestions
-        if "multianswer" in classes:
-            # Find all subquestion spans/inputs
-            # The structure is often <span class="subquestion">...<select>...</span>
-            # We need to re-parse the content div because we modified it above (extracted accesshide)
-            # Actually, extracting accesshide is fine, we just need to find inputs/selects
+        # Extract sequencecheck
+        # It's usually an input type="hidden" inside the question div with name ending in :sequencecheck
+        sequencecheck = None
+        seq_input = q_div.find('input', attrs={'name': re.compile(r':sequencecheck$')})
+        if seq_input:
+            sequencecheck = seq_input.get('value')
 
-            # Re-select content div from original soup or clone if needed, but here we just search in q_div
-            # Note: q_div was modified in place? Yes, BeautifulSoup modifies the tree.
-            # But the inputs are still there.
+        # If no subquestions found via the above method (e.g. not a Cloze question),
+        # we might need to handle standard multichoice options if we want to list them.
+        # But for now, the request was specifically about fixing the text/options mixing in Cloze.
 
-            sub_spans = q_div.select('.subquestion')
-            for sub in sub_spans:
-                label_tag = sub.select_one('label')
-                label = label_tag.get_text(strip=True) if label_tag else ""
+        questions.append(QuizQuestion(
+            id=q_id,
+            number=q_no,
+            text=q_text,
+            type=q_type,
+            options=None,
+            subquestions=subquestions,
+            sequencecheck=sequencecheck
+        ))
 
-                select = sub.select_one('select')
-                input_tag = sub.select_one('input')
-
-                control_name = ""
-                options = []
-
-                if select:
-                    control_name = select.get('name')
-                    for opt in select.select('option'):
-                        val = opt.get('value')
-                        text = opt.get_text(strip=True)
-                        if val: # Ignore placeholder
-                            options.append({"value": val, "text": text})
-                elif input_tag:
-                    control_name = input_tag.get('name')
-
-                subquestions.append({
-                    "label": label,
-                    "name": control_name,
-                    "options": options,
-                    "type": "select" if select else "text"
-                })
-
-        questions.append({
-            "id": q_id,
-            "number": q_no,
-            "text": q_text,
-            "type": q_type,
-            "options": None, # For simple multichoice, we would parse this differently
-            "subquestions": subquestions
-        })
-
-    return {
-        "attempt_id": attempt_id,
-        "sesskey": sesskey,
-        "slots": slots,
-        "questions": questions,
-        "next_url": None # Logic to find next page URL if needed
-    }
+    return QuizAttemptData(
+        attempt_id=attempt_id,
+        sesskey=sesskey,
+        slots=slots,
+        questions=questions,
+        next_url=None # Logic to find next page URL if needed
+    )

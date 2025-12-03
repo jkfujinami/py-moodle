@@ -1,8 +1,8 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 import logging
 from pymoodle.session import MoodleSession
 from pymoodle.api import MoodleAPI
-from pymoodle.types import Course, Category, Section, FolderDetails, AssignmentDetails, ForumDetails, PageDetails, QuizDetails
+from pymoodle.types import Course, Category, Section, FolderDetails, AssignmentDetails, ForumDetails, PageDetails, QuizDetails, QuizAttemptData
 
 logger = logging.getLogger(__name__)
 
@@ -69,5 +69,11 @@ class MoodleClient:
     def start_quiz_attempt(self, cmid: int, sesskey: str) -> Optional[str]:
         return self.api.start_quiz_attempt(cmid, sesskey)
 
-    def get_quiz_attempt_data(self, attempt_url: str) -> Optional[dict]:
+    def get_quiz_attempt_data(self, attempt_url: str) -> Optional[QuizAttemptData]:
         return self.api.get_quiz_attempt_data(attempt_url)
+
+    def submit_quiz_answers(self, attempt_data: QuizAttemptData, answers: Dict[str, str], finish_attempt: bool = False) -> Optional[str]:
+        return self.api.submit_quiz_answers(attempt_data, answers, finish_attempt)
+
+    def finish_quiz_attempt(self, attempt_id: str, sesskey: str, cmid: str) -> Optional[str]:
+        return self.api.finish_quiz_attempt(attempt_id, sesskey, cmid)

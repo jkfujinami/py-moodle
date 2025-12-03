@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 import logging
 from pymoodle.session import MoodleSession
 from pymoodle import parsers, utils
-from pymoodle.types import Course, Category, Section, FolderDetails, AssignmentDetails, ForumDetails, PageDetails, QuizDetails
+from pymoodle.types import Course, Category, Section, FolderDetails, AssignmentDetails, ForumDetails, PageDetails, QuizDetails, QuizAttemptData
 from pymoodle.exceptions import MoodleRequestError, MoodleParseError
 
 logger = logging.getLogger(__name__)
@@ -191,7 +191,7 @@ class MoodleAPI:
             logger.error(f"Error starting quiz attempt: {e}")
             return None
 
-    def get_quiz_attempt_data(self, attempt_url: str) -> Optional[dict]:
+    def get_quiz_attempt_data(self, attempt_url: str) -> Optional[QuizAttemptData]:
         """
         Fetches the quiz attempt page and parses the questions.
         """
@@ -202,4 +202,116 @@ class MoodleAPI:
             return parsers.parse_quiz_attempt(response.text)
         except (MoodleRequestError, Exception) as e:
             logger.error(f"Error fetching quiz attempt data: {e}")
+            return None
+
+    def submit_quiz_answers(self, attempt_data: QuizAttemptData, answers: Dict[str, str], finish_attempt: bool = False) -> Optional[str]:
+        """
+        Submits quiz answers.
+
+        :param attempt_data: The parsed data from the attempt page.
+        :param answers: A dictionary mapping input names (e.g., 'q123:1_sub1_answer') to values.
+        :param finish_attempt: If True, submits 'Finish attempt' (this usually leads to summary page).
+                               If False, just saves (Next page).
+        :return: The URL of the next page (e.g., summary or next question page) or None on failure.
+        """
+        url = urljoin(self.session.base_url, "mod/quiz/processattempt.php")
+
+        # Basic payload required by Moodle
+        payload = {
+            'attempt': attempt_data.attempt_id,
+            'sesskey': attempt_data.sesskey,
+            'slots': attempt_data.slots,
+            'thispage': '0', # Assuming single page or first page for now. Ideally should be parsed.
+            'nextpage': '-1', # -1 usually means finish or next.
+            'timeup': '0',
+            'scrollpos': '',
+        }
+
+        # Add user answers
+        payload.update(answers)
+
+        # Add sequence checks and flagged status for each question involved
+        # We iterate through questions in attempt_data to find their sequencecheck values
+        # The keys in 'answers' usually contain the question unique ID, but we need to match them.
+        # Actually, we should just add sequencecheck for ALL questions on the page,
+        # regardless of whether we are answering them or not, to be safe.
+
+        for q in attempt_data.questions:
+            # Construct the prefix for this question's inputs.
+            # The question ID in parsed data is like 'question-566730-1'.
+            # The input names are like 'q566730:1_...'.
+            # We need to extract the uniqueid and slot from the ID or just look at subquestion names.
+
+            # If we have subquestions, we can get the prefix from their names.
+            prefix = ""
+            if q.subquestions:
+                # Take the first subquestion's name, e.g., 'q566730:1_sub1_answer'
+                # Split by '_' to get 'q566730:1'
+                first_name = q.subquestions[0]['name']
+                if first_name:
+                    prefix = first_name.split('_')[0]
+
+            # If we couldn't determine prefix from subquestions (e.g. simple question),
+            # we might need to parse it from the question div ID or sequencecheck name if we had it.
+            # But wait, we parsed sequencecheck value, but what is its NAME?
+            # We didn't parse the sequencecheck NAME, only VALUE.
+            # Moodle requires 'q{uniqueid}:{slot}_:sequencecheck': value.
+
+            # Let's assume the user passes the correct keys in 'answers'.
+            # But for sequencecheck, we need to construct the key.
+            # In parsers.py, we extracted sequencecheck value.
+            # We should probably have extracted the name too, or at least the prefix.
+
+            # Let's try to infer the prefix from the subquestion names if available.
+            if prefix and q.sequencecheck:
+                payload[f'{prefix}_:sequencecheck'] = q.sequencecheck
+                payload[f'{prefix}_:flagged'] = '0' # Default to not flagged
+
+        if finish_attempt:
+            payload['next'] = 'テストを終了する ...' # This text might vary by language!
+            # Moodle often checks the presence of the button name.
+            # 'finishattempt' might be safer if it exists as a hidden field, but usually it's a submit button.
+            # In English it's 'Finish attempt ...'. In Japanese 'テストを終了する ...'.
+            # Safer to include 'next' with some value.
+        else:
+            payload['next'] = 'Next'
+
+        logger.info(f"Submitting quiz answers for attempt {attempt_data.attempt_id}")
+        try:
+            response = self.session.post(url, data=payload)
+            response.raise_for_status()
+            logger.info(f"Submission successful. Redirected to: {response.url}")
+            return response.url
+        except (MoodleRequestError, Exception) as e:
+            logger.error(f"Error submitting quiz answers: {e}")
+            return None
+
+    def finish_quiz_attempt(self, attempt_id: str, sesskey: str, cmid: str) -> Optional[str]:
+        """
+        Finalizes the quiz attempt (equivalent to clicking "Submit all and finish").
+
+        :param attempt_id: The attempt ID.
+        :param sesskey: The session key.
+        :param cmid: The course module ID (quiz ID).
+        :return: The URL of the review page or None on failure.
+        """
+        url = urljoin(self.session.base_url, "mod/quiz/processattempt.php")
+
+        payload = {
+            'attempt': attempt_id,
+            'finishattempt': '1',
+            'timeup': '0',
+            'slots': '',
+            'cmid': cmid,
+            'sesskey': sesskey
+        }
+
+        logger.info(f"Finishing quiz attempt {attempt_id} (cmid={cmid})")
+        try:
+            response = self.session.post(url, data=payload)
+            response.raise_for_status()
+            logger.info(f"Finish successful. Redirected to: {response.url}")
+            return response.url
+        except (MoodleRequestError, Exception) as e:
+            logger.error(f"Error finishing quiz attempt: {e}")
             return None

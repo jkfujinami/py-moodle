@@ -37,12 +37,12 @@ def main():
         return
 
     for section in sections:
-        print(f"\nSection: {section['name']} (ID: {section['id']})")
-        for mod in section['modules']:
-            status = "[x]" if mod['completed'] else "[ ]"
-            print(f"  {status} {mod['name']} ({mod['type']})")
-            if mod['description']:
-                # print(f"      Desc: {mod['description']}")
+        print(f"\nSection: {section.name} (ID: {section.id})")
+        for mod in section.modules:
+            status = "[x]" if mod.completed else "[ ]"
+            print(f"  {status} {mod.name} ({mod.type})")
+            if mod.description:
+                # print(f"      Desc: {mod.description}")
                 pass
 
 if __name__ == "__main__":

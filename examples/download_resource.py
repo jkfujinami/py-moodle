@@ -32,6 +32,7 @@ def main():
     resource_id = 12345
 
     print(f"Resolving download URL for resource {resource_id}...")
+    # This method returns a string, so no change needed for the return value itself
     download_url = client.get_resource_download_url(resource_id)
 
     if download_url:

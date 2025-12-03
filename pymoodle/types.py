@@ -1,20 +1,24 @@
-from typing import TypedDict, List, Optional
+from dataclasses import dataclass
+from typing import List, Optional, Dict, Any
 
-class Course(TypedDict):
+@dataclass
+class Course:
     id: int
     name: str
     url: str
     image_url: Optional[str]
     teachers: List[str]
 
-class Category(TypedDict):
+@dataclass
+class Category:
     id: Optional[int]
     name: str
     url: str
     course_count: int
     has_children: bool
 
-class Module(TypedDict):
+@dataclass
+class Module:
     id: Optional[int]
     type: str
     name: str
@@ -22,18 +26,21 @@ class Module(TypedDict):
     description: Optional[str]
     completed: bool
 
-class Section(TypedDict):
+@dataclass
+class Section:
     id: Optional[str]
     name: str
     summary: str
     modules: List[Module]
 
-class FileItem(TypedDict):
+@dataclass
+class FileItem:
     filename: str
     url: str
     mimetype: Optional[str]
 
-class AssignmentDetails(TypedDict):
+@dataclass
+class AssignmentDetails:
     title: str
     intro: str
     attachments: List[FileItem]
@@ -44,44 +51,52 @@ class AssignmentDetails(TypedDict):
     last_modified: str
     submission_files: List[FileItem]
 
-class FolderDetails(TypedDict):
+@dataclass
+class FolderDetails:
     title: str
     files: List[FileItem]
     download_all_url: Optional[str]
 
-class ForumDetails(TypedDict):
+@dataclass
+class ForumDetails:
     title: str
     intro: str
     has_discussions: bool
 
-class PageDetails(TypedDict):
+@dataclass
+class PageDetails:
     title: str
     content: str
     last_modified: str
 
-class QuizAttempt(TypedDict):
+@dataclass
+class QuizAttempt:
     attempt_number: int
     state: str
     grade: Optional[str]
     review_url: Optional[str]
     feedback: Optional[str]
 
-class QuizQuestion(TypedDict):
+@dataclass
+class QuizQuestion:
     id: str
     number: int
     text: str
     type: str  # 'multianswer', 'multichoice', etc.
     options: Optional[List[Dict[str, str]]]  # For select/radio options
     subquestions: Optional[List[Dict[str, Any]]] # For multianswer subparts
+    sequencecheck: Optional[str] = None
 
-class QuizAttemptData(TypedDict):
+@dataclass
+class QuizAttemptData:
     attempt_id: str
     sesskey: str
     slots: str
     questions: List[QuizQuestion]
     next_url: Optional[str]
 
-class QuizDetails(TypedDict):
+@dataclass
+class QuizDetails:
     title: str
     intro: str
     attempts: List[QuizAttempt]

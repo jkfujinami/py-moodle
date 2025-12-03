@@ -31,13 +31,13 @@ def main():
     courses = client.get_my_courses()
     print(f"Found {len(courses)} courses:")
     for course in courses:
-        print(f"- [{course['id']}] {course['name']}")
+        print(f"- [{course.id}] {course.name}")
 
     print("\nFetching root course categories...")
     categories = client.get_course_categories()
     print(f"Found {len(categories)} root categories:")
     for cat in categories:
-        print(f"- [{cat['id']}] {cat['name']} (Courses: {cat['course_count']})")
+        print(f"- [{cat.id}] {cat.name} (Courses: {cat.course_count})")
 
 if __name__ == "__main__":
     main()
