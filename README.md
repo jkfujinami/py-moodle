@@ -1,112 +1,166 @@
-# PyMoodle (Unofficial Moodle API Client)
+# PyMoodle
 
-舞鶴高専Moodle (https://moodle2.maizuru-ct.ac.jp/moodle/) 向けの非公式APIクライアントライブラリです。
-スクレイピングを使用して、コース一覧、コースコンテンツ、課題情報、小テスト結果などを取得し、ファイルのダウンロードも可能です。
+**PyMoodle** は、[Moodle](https://moodle.org/) LMS プラットフォームと対話するための、非公式の Python クライアントライブラリです。Moodle の Web インターフェースをスクレイピングすることで、コース情報の取得、課題の確認、ファイルのダウンロード、小テスト結果の閲覧などをプログラムから行うことができます。
 
-## 特徴
+## 主な機能
 
-*   **セッション永続化**: 一度ログインすると、セッションCookieをJSONファイルに保存し、次回以降のログインを省略できます。
-*   **コース情報取得**: マイコース一覧、カテゴリ一覧を取得できます。
-*   **詳細なコンテンツ解析**:
-    *   **課題 (Assign)**: 提出期限、ステータス、添付ファイル
-    *   **小テスト (Quiz)**: 受験履歴、評点、フィードバック
-    *   **フォルダ (Folder)**: ファイルリスト
-    *   **ページ (Page)**: コンテンツ内容
-    *   **フォーラム (Forum)**: 概要
-*   **ファイルダウンロード**: 配布資料やフォルダ内のファイルをローカルに保存できます。
-*   **リソース解決**: 外部リンクの実体URLなどを解決します。
+*   **認証の自動化**: ログインフローを処理し、セッションを自動的に維持します。
+*   **セッションの永続化**: セッション Cookie をローカルの JSON ファイルに保存し、再ログインの手間を省きます。
+*   **コース管理**: 登録しているコースの一覧や、コースカテゴリを閲覧できます。
+*   **コンテンツの抽出**:
+    *   **課題 (Assignments)**: 提出期限、提出状況、添付ファイルへのリンクを取得します。
+    *   **小テスト (Quizzes)**: 受験履歴、評点、フィードバックを確認できます。
+    *   **リソース**: ファイルやフォルダの直接ダウンロード URL を解決します。
+    *   **フォーラム & ページ**: コンテンツや概要を抽出します。
+*   **ファイルダウンロード**: コース資料や提出ファイルをダウンロードするためのヘルパーメソッドを提供します。
+*   **堅牢なアーキテクチャ**: セッション管理と API ロジックを明確に分離した設計になっています。
 
 ## 必要要件
 
-*   Python 3.8+
-*   requests
-*   beautifulsoup4
+*   Python 3.8 以上
+*   `requests`
+*   `beautifulsoup4`
 
 ## インストール
 
+ソースコードから直接インストールできます：
+
 ```bash
+git clone https://github.com/yourusername/pymoodle.git
+cd pymoodle
 pip install -e .
 ```
 
 ## 使い方
 
-### 基本的な使用例
+### 1. 初期化とログイン
+
+Moodle のベース URL を指定してクライアントを初期化します。指定しない場合は、デフォルトの設定(舞鶴高専)が使用されます。
 
 ```python
-from pymoodle.client import MoodleClient
+from pymoodle import MoodleClient
 import getpass
-import os
 
-# クライアントの初期化
-# base_urlを指定しない場合は舞鶴高専Moodleがデフォルトになります
-client = MoodleClient(session_file="moodle_session.json")
+# あなたの Moodle URL で初期化
+# 注意: URL の末尾にはスラッシュを付けてください
+BASE_URL = "https://moodle.example.com/"
+client = MoodleClient(session_file="session.json", base_url=BASE_URL)
 
-# 別のMoodleサイトを利用する場合:
-# client = MoodleClient(session_file="other_session.json", base_url="https://moodle.example.com/")
-
-# ログイン処理（省略可能、セッションがあれば自動でログイン状態になる）
-if not client.is_logged_in():
+# 有効なセッションが保存されているか確認
+if client.is_logged_in():
+    print("ファイルからセッションを復元しました。")
+else:
+    # ログインを実行
     username = input("Username: ")
     password = getpass.getpass("Password: ")
-    client.login(username, password)
 
-# コースコンテンツの取得と詳細情報の表示
-course_id = 12345  # 任意のコースID
+    if client.login(username, password):
+        print("ログインに成功しました。")
+    else:
+        print("ログインに失敗しました。")
+        exit(1)
+```
+
+### 2. コースの取得
+
+登録されているコースの一覧を取得します。
+
+```python
+courses = client.get_my_courses()
+print(f"{len(courses)} 個のコースが見つかりました:")
+
+for course in courses:
+    print(f"- {course['name']} (ID: {course['id']})")
+```
+
+### 3. コースコンテンツの閲覧
+
+特定のコース内のセクションとモジュールを反復処理します。
+
+```python
+course_id = 12345
 sections = client.get_course_contents(course_id)
 
 for section in sections:
-    print(f"Section: {section['name']}")
-    for mod in section['modules']:
-        print(f"  - {mod['name']} ({mod['type']})")
+    print(f"\n### {section['name']} ###")
+    for module in section['modules']:
+        status = "[x]" if module['completed'] else "[ ]"
+        print(f"{status} {module['name']} ({module['type']})")
 
-        # 課題の詳細取得
-        if mod['type'] == 'assign' and mod['id']:
-            details = client.get_assignment_details(mod['id'])
+        # 例: 課題 (Assign) の処理
+        if module['type'] == 'assign':
+            details = client.get_assignment_details(module['id'])
             if details:
-                print(f"    Due: {details['due_date']}, Status: {details['submission_status']}")
-
-        # 小テストの詳細取得
-        elif mod['type'] == 'quiz' and mod['id']:
-            details = client.get_quiz_details(mod['id'])
-            if details and details['attempts']:
-                print(f"    Grade: {details['attempts'][-1]['grade']}")
-
-        # フォルダ内のファイルをダウンロード
-        elif mod['type'] == 'folder' and mod['id']:
-            details = client.get_folder_details(mod['id'])
-            if details:
-                for file_item in details['files']:
-                    print(f"    Downloading {file_item['filename']}...")
-                    client.download_file(file_item['url'], "downloads")
+                print(f"    期限: {details['due_date']}")
+                print(f"    状態: {details['submission_status']}")
 ```
 
-### 機能一覧
+### 4. ファイルのダウンロード
 
-*   `client.login(username, password)`: ログインします。
-*   `client.get_my_courses()`: 登録されているコース一覧を取得します。
-*   `client.get_course_contents(course_id)`: コース内のセクションとモジュール一覧を取得します。
-*   **詳細情報取得**:
-    *   `client.get_assignment_details(assign_id)`: 課題の詳細（期限、ステータスなど）を取得。
-    *   `client.get_quiz_details(quiz_id)`: 小テストの詳細（受験履歴、評点など）を取得。
-    *   `client.get_folder_details(folder_id)`: フォルダ内のファイル一覧を取得。
-    *   `client.get_page_details(page_id)`: ページの内容を取得。
-    *   `client.get_forum_details(forum_id)`: フォーラムの概要を取得。
-*   **ユーティリティ**:
-    *   `client.download_file(url, save_path)`: ファイルをダウンロードして保存します。
-    *   `client.get_resource_download_url(resource_id)`: 配布資料（PDFなど）の直接ダウンロードURLを取得。
-    *   `client.get_external_url(url_id)`: 外部リンクの実体URLを取得。
+フォルダリソースや直接リンクからファイルをダウンロードします。
 
-## ディレクトリ構成
+```python
+output_dir = "./downloads"
 
-*   `pymoodle/`: ライブラリ本体
-    *   `client.py`: ユーザー向けAPIクライアント (Facade)
-    *   `core.py`: 基本的なHTTP通信とセッション管理
-    *   `services.py`: ビジネスロジック
-    *   `parsers.py`: HTML解析ロジック
-    *   `types.py`: 型定義
-*   `example.py`: サンプルコード
+# 例: フォルダモジュール内の全ファイルをダウンロード
+if module['type'] == 'folder':
+    details = client.get_folder_details(module['id'])
+    if details:
+        for file_item in details['files']:
+            print(f"{file_item['filename']} をダウンロード中...")
+            client.download_file(file_item['url'], output_dir)
+```
 
-## 注意事項
+## API リファレンス
 
-*   本ライブラリは非公式であり、Moodleの仕様変更により動作しなくなる可能性があります。
-*   スクレイピングを行うため、サーバーに過度な負荷をかけないように注意してください。
+### `MoodleClient`
+
+ライブラリのメインエントリーポイントです。
+
+*   `__init__(session_file="session.json", base_url=None)`
+*   `login(username, password) -> bool`
+*   `is_logged_in() -> bool`
+*   `get_my_courses() -> List[Course]`
+*   `get_course_contents(course_id) -> List[Section]`
+*   `get_course_categories(category_id=None) -> List[Category]`
+
+### コンテンツ取得メソッド
+
+*   `get_assignment_details(assign_id)`
+*   `get_quiz_details(quiz_id)`
+*   `get_folder_details(folder_id)`
+*   `get_page_details(page_id)`
+*   `get_forum_details(forum_id)`
+*   `get_resource_download_url(resource_id)`
+*   `get_external_url(url_id)`
+
+### ユーティリティ
+
+*   `download_file(url, save_path)`
+
+## エラーハンドリング
+
+PyMoodle は `pymoodle.exceptions` でカスタム例外を提供しています：
+
+*   `MoodleLoginError`: 認証に失敗した場合。
+*   `MoodleRequestError`: ネットワークや HTTP エラーが発生した場合。
+*   `MoodleParseError`: HTML レスポンスの解析に失敗した場合（Moodle のテーマの違いなどが原因の可能性があります）。
+
+```python
+from pymoodle.exceptions import MoodleLoginError
+
+try:
+    client.login(user, pwd)
+except MoodleLoginError as e:
+    print(f"認証エラー: {e}")
+```
+
+## 免責事項
+
+このライブラリは **非公式** であり、Moodle HQ とは提携していません。Web スクレイピングに依存しているため、以下の点に注意してください：
+1.  Moodle のテーマや DOM 構造が大幅に変更された場合、**動作しなくなる可能性**があります。
+2.  **全て自己責任でお願いします。**
+
+## ライセンス
+
+[MIT License](LICENSE)
