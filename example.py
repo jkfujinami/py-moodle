@@ -104,10 +104,28 @@ def main():
                             print(f"      -> Content: {details['content'][:100]}...")
                     elif mod['type'] == "quiz" and mod['id']:
                         details = client.get_quiz_details(mod['id'])
+                        # print(details)
                         if details:
                             print(f"      -> Intro: {details['intro'][:50]}...")
                             print(f"      -> Can Attempt: {details['can_attempt']}")
-                            if details['attempts']:
+
+                            if details['can_attempt'] and details['cmid'] and details['sesskey']:
+                                print("      -> Starting attempt...")
+                                attempt_url = client.start_quiz_attempt(details['cmid'], details['sesskey'])
+                                if attempt_url:
+                                    print(f"      -> Attempt URL: {attempt_url}")
+                                    attempt_data = client.get_quiz_attempt_data(attempt_url)
+                                    if attempt_data:
+                                        print(f"      -> Attempt ID: {attempt_data['attempt_id']}")
+                                        print(f"      -> Questions Found: {len(attempt_data['questions'])}")
+                                        for q in attempt_data['questions']:
+                                            print(f"         - Q{q['number']} ({q['type']}): {q['text'][:30]}...")
+                                            if q['subquestions']:
+                                                print(f"           Subquestions: {len(q['subquestions'])}")
+                                                # for sub in q['subquestions']:
+                                                #    print(f"             - {sub['label']} ({sub['type']})")
+
+                            elif details['attempts']:
                                 last_attempt = details['attempts'][-1]
                                 print(f"      -> Last Attempt Grade: {last_attempt['grade']}")
     else:

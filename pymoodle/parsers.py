@@ -483,14 +483,128 @@ def parse_quiz(html: str) -> QuizDetails:
     overall_feedback = feedback_div.get_text(separator="\n", strip=True) if feedback_div else None
 
     can_attempt = False
+    cmid = None
+    sesskey = None
+
     start_form = soup.select_one('form[action*="startattempt.php"]')
     if start_form:
         can_attempt = True
+        cmid_input = start_form.select_one('input[name="cmid"]')
+        if cmid_input:
+            try:
+                cmid = int(cmid_input.get('value'))
+            except (ValueError, TypeError):
+                pass
+
+        sesskey_input = start_form.select_one('input[name="sesskey"]')
+        if sesskey_input:
+            sesskey = sesskey_input.get('value')
 
     return {
         "title": title,
         "intro": intro,
         "attempts": attempts,
         "feedback": overall_feedback,
-        "can_attempt": can_attempt
+        "can_attempt": can_attempt,
+        "cmid": cmid,
+        "sesskey": sesskey,
+        "latest_attempt_data": None
+    }
+
+def parse_quiz_attempt(html: str) -> QuizAttemptData:
+    soup = BeautifulSoup(html, 'html.parser')
+
+    form = soup.select_one('#responseform')
+    if not form:
+        return None
+
+    attempt_id = form.select_one('input[name="attempt"]')['value']
+    sesskey = form.select_one('input[name="sesskey"]')['value']
+    slots = form.select_one('input[name="slots"]')['value']
+
+    questions: List[QuizQuestion] = []
+    question_divs = form.select('.que')
+
+    for q_div in question_divs:
+        q_id = q_div.get('id') # e.g., question-566730-1
+
+        # Extract question number
+        q_no_tag = q_div.select_one('.qno')
+        q_no = int(q_no_tag.get_text(strip=True)) if q_no_tag else 0
+
+        # Extract question text (ignoring accesshide)
+        content_div = q_div.select_one('.content')
+        q_text = ""
+        if content_div:
+            # Remove accesshide elements temporarily to get clean text
+            for hidden in content_div.select('.accesshide'):
+                hidden.extract()
+
+            formulation = content_div.select_one('.formulation')
+            if formulation:
+                q_text = formulation.get_text(separator="\n", strip=True)
+
+        # Determine type
+        classes = q_div.get('class', [])
+        q_type = "unknown"
+        for c in classes:
+            if c != "que" and c != "deferredfeedback" and c != "notyetanswered":
+                q_type = c
+                break
+
+        subquestions = []
+        # Handle multianswer (cloze) subquestions
+        if "multianswer" in classes:
+            # Find all subquestion spans/inputs
+            # The structure is often <span class="subquestion">...<select>...</span>
+            # We need to re-parse the content div because we modified it above (extracted accesshide)
+            # Actually, extracting accesshide is fine, we just need to find inputs/selects
+
+            # Re-select content div from original soup or clone if needed, but here we just search in q_div
+            # Note: q_div was modified in place? Yes, BeautifulSoup modifies the tree.
+            # But the inputs are still there.
+
+            sub_spans = q_div.select('.subquestion')
+            for sub in sub_spans:
+                label_tag = sub.select_one('label')
+                label = label_tag.get_text(strip=True) if label_tag else ""
+
+                select = sub.select_one('select')
+                input_tag = sub.select_one('input')
+
+                control_name = ""
+                options = []
+
+                if select:
+                    control_name = select.get('name')
+                    for opt in select.select('option'):
+                        val = opt.get('value')
+                        text = opt.get_text(strip=True)
+                        if val: # Ignore placeholder
+                            options.append({"value": val, "text": text})
+                elif input_tag:
+                    control_name = input_tag.get('name')
+
+                subquestions.append({
+                    "label": label,
+                    "name": control_name,
+                    "options": options,
+                    "type": "select" if select else "text"
+                })
+
+        questions.append({
+            "id": q_id,
+            "number": q_no,
+            "text": q_text,
+            "type": q_type,
+            "options": None, # For simple multichoice, we would parse this differently
+            "subquestions": subquestions
+        })
+
+    return {
+        "attempt_id": attempt_id,
+        "sesskey": sesskey,
+        "slots": slots,
+        "questions": questions,
+        "next_url": None # Logic to find next page URL if needed
     }

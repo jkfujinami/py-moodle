@@ -66,9 +66,27 @@ class QuizAttempt(TypedDict):
     review_url: Optional[str]
     feedback: Optional[str]
 
+class QuizQuestion(TypedDict):
+    id: str
+    number: int
+    text: str
+    type: str  # 'multianswer', 'multichoice', etc.
+    options: Optional[List[Dict[str, str]]]  # For select/radio options
+    subquestions: Optional[List[Dict[str, Any]]] # For multianswer subparts
+
+class QuizAttemptData(TypedDict):
+    attempt_id: str
+    sesskey: str
+    slots: str
+    questions: List[QuizQuestion]
+    next_url: Optional[str]
+
 class QuizDetails(TypedDict):
     title: str
     intro: str
     attempts: List[QuizAttempt]
     feedback: Optional[str]
     can_attempt: bool
+    cmid: Optional[int]
+    sesskey: Optional[str]
+    latest_attempt_data: Optional[QuizAttemptData]

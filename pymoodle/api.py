@@ -159,3 +159,47 @@ class MoodleAPI:
         except (MoodleRequestError, Exception) as e:
             logger.error(f"Error downloading file: {e}")
             return None
+
+    def start_quiz_attempt(self, cmid: int, sesskey: str) -> Optional[str]:
+        """
+        Starts a new quiz attempt.
+        Returns the URL of the attempt page if successful (e.g., .../mod/quiz/attempt.php?attempt=...).
+        """
+        url = urljoin(self.session.base_url, "mod/quiz/startattempt.php")
+        payload = {
+            "cmid": cmid,
+            "sesskey": sesskey
+        }
+        logger.info(f"Starting quiz attempt for cmid={cmid}")
+        try:
+            # Moodle usually redirects to attempt.php after POST
+            response = self.session.post(url, data=payload)
+            response.raise_for_status()
+
+            if "attempt.php" in response.url:
+                logger.info(f"Quiz attempt started. Redirected to: {response.url}")
+                return response.url
+            elif "view.php" in response.url:
+                 # Sometimes it redirects back to view if failed or confirmation needed (though confirmation usually is a form)
+                 logger.warning("Redirected back to quiz view page. Attempt might not have started.")
+                 return None
+            else:
+                logger.info(f"Request finished. Current URL: {response.url}")
+                return response.url
+
+        except (MoodleRequestError, Exception) as e:
+            logger.error(f"Error starting quiz attempt: {e}")
+            return None
+
+    def get_quiz_attempt_data(self, attempt_url: str) -> Optional[dict]:
+        """
+        Fetches the quiz attempt page and parses the questions.
+        """
+        logger.info(f"Fetching quiz attempt data from: {attempt_url}")
+        try:
+            response = self.session.get(attempt_url)
+            response.raise_for_status()
+            return parsers.parse_quiz_attempt(response.text)
+        except (MoodleRequestError, Exception) as e:
+            logger.error(f"Error fetching quiz attempt data: {e}")
+            return None

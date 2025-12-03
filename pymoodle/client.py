@@ -65,3 +65,9 @@ class MoodleClient:
 
     def get_course_categories(self, category_id: Optional[int] = None) -> List[Category]:
         return self.api.get_course_categories(category_id)
+
+    def start_quiz_attempt(self, cmid: int, sesskey: str) -> Optional[str]:
+        return self.api.start_quiz_attempt(cmid, sesskey)
+
+    def get_quiz_attempt_data(self, attempt_url: str) -> Optional[dict]:
+        return self.api.get_quiz_attempt_data(attempt_url)
