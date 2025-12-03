@@ -100,8 +100,6 @@ if details.can_attempt:
 
 ### データモデル
 
-すべての API メソッドは、辞書ではなく **Dataclass** オブジェクトを返すようになり、IDE の補完や型安全性が向上しました。
-
 - `Course`
 - `Category`
 - `Section`
