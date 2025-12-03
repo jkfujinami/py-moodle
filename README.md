@@ -25,8 +25,8 @@
 ソースコードから直接インストールできます：
 
 ```bash
-git clone https://github.com/yourusername/pymoodle.git
-cd pymoodle
+git clone https://github.com/jkfujinami/py-moodle.git
+cd py-moodle
 pip install -e .
 ```
 
